@@ -45,8 +45,7 @@ void TrafficLight::waitForGreen()
     // Once it receives TrafficLightPhase::green, the method returns.
     while(1)
     {
-        _currentPhase = _phase.receive();
-        if (getCurrentPhase() == green)
+        if (_phase.receive() == green)
             return;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
@@ -54,7 +53,7 @@ void TrafficLight::waitForGreen()
 
 TrafficLightPhase TrafficLight::getCurrentPhase()
 {
-    std::lock_guard<std::mutex> uLock(_mutex);
+    std::lock_guard<std::mutex> uLock(_mtx);
     return _currentPhase;
 }
 
@@ -71,26 +70,26 @@ void TrafficLight::cycleThroughPhases()
     // and toggles the current phase of the traffic light between red and green and sends an update method 
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
     // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles.    
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> distribution(4000, 6000);
+    
     while(1)
     {
-        std::default_random_engine generator;
-        std::uniform_int_distribution<int> distribution(4000, 6000);
-        int duration = distribution(generator);
+        int duration = distribution(gen);
         std::this_thread::sleep_for(std::chrono::milliseconds(duration));
         
-        TrafficLightPhase current_phase = getCurrentPhase(); 
-        
-        if(current_phase == green)
+        if(getCurrentPhase() == green)
         {       
-            std::lock_guard<std::mutex> uLock(_mutex);
-            current_phase = red;
-            std::cout << "ID#  " << _id << " turn red" <<std::endl;
+            _phase.send(std::move(TrafficLightPhase::red));
+            std::lock_guard<std::mutex> uLock(_mtx);
+            _currentPhase = red;
         } else {
-            std::lock_guard<std::mutex> uLock(_mutex);
-            current_phase = green;
-            std::cout << "ID#  " << _id << " turn green" <<std::endl;
+            _phase.send(std::move(TrafficLightPhase::green));
+            std::lock_guard<std::mutex> uLock(_mtx);
+            _currentPhase = green;
         }
-        _phase.send(std::move(current_phase));
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     } 
