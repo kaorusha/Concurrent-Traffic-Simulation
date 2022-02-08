@@ -74,22 +74,28 @@ void TrafficLight::cycleThroughPhases()
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> distribution(4000, 6000);
+    std::chrono::time_point<std::chrono::system_clock> lastUpdate;
+    lastUpdate = std::chrono::system_clock::now();
     
     while(1)
     {
         int duration = distribution(gen);
-        std::this_thread::sleep_for(std::chrono::milliseconds(duration));
         
-        if(getCurrentPhase() == green)
-        {       
-            _phase.send(std::move(TrafficLightPhase::red));
-            std::lock_guard<std::mutex> uLock(_mtx);
-            _currentPhase = red;
-        } else {
-            _phase.send(std::move(TrafficLightPhase::green));
-            std::lock_guard<std::mutex> uLock(_mtx);
-            _currentPhase = green;
-        }
+        long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastUpdate).count();
+        if (timeSinceLastUpdate >= duration)
+        {
+            if(getCurrentPhase() == green)
+            {       
+                _phase.send(std::move(TrafficLightPhase::red));
+                std::lock_guard<std::mutex> uLock(_mtx);
+                _currentPhase = red;
+            } else {
+                _phase.send(std::move(TrafficLightPhase::green));
+                std::lock_guard<std::mutex> uLock(_mtx);
+                _currentPhase = green;
+            }
+            lastUpdate = std::chrono::system_clock::now();
+        }   
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     } 
