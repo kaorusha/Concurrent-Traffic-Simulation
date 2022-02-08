@@ -61,7 +61,6 @@ private:
     MessageQueue<TrafficLightPhase> _phase;
 
     std::condition_variable _condition;
-    std::mutex _mutex;
 };
 
 #endif
