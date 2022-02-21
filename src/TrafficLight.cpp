@@ -38,6 +38,8 @@ TrafficLight::TrafficLight()
     _currentPhase = TrafficLightPhase::red;
 }
 
+TrafficLight::~TrafficLight(){}
+
 void TrafficLight::waitForGreen()
 {
     // FP.5b : add the implementation of the method waitForGreen, in which an infinite while-loop 
@@ -47,7 +49,8 @@ void TrafficLight::waitForGreen()
     {
         if (_phase.receive() == green)
             return;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        // https://stackoverflow.com/questions/9154899/the-disadvantages-of-using-sleep
+        // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 
@@ -71,15 +74,16 @@ void TrafficLight::cycleThroughPhases()
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
     // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles.    
     
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> distribution(4000, 6000);
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> distribution(4000, 6000);
     std::chrono::time_point<std::chrono::system_clock> lastUpdate;
     lastUpdate = std::chrono::system_clock::now();
+    double duration;
     
     while(1)
     {
-        int duration = distribution(gen);
+        duration = distribution(gen);
         
         long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastUpdate).count();
         if (timeSinceLastUpdate >= duration)
